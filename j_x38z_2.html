@@ -1,0 +1,93 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Обновление текста ссылок блока Intersection</title>
+    <script language="JavaScript" src="_js/jquery-1.11.0.js" type="text/javascript"></script>
+    <script language="JavaScript" src="_js/main.js" type="text/javascript"></script>
+    <script src="_js/g54g/g54g_3.0.0.js"></script>
+    <link href="_styles/main.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div id="shapka"></div>
+<div id="x44z_comm">спец. страница, [[w91w]]</div>
+
+<li> используется <a href="t_714_t.html">DOMParser</a></li>
+<li> чтобы статьи действительно были обновлены нужно раскомментировать код</li>
+<li> будут проблемы (ошибка 8070000c) если пути в ссылках блока Intersection абсолютные вместо относительных</li>
+<li> будут проблемы если файл, на который идёт ссылка в блоке Intersection, отсутствует в действительности </li>
+
+
+<script>
+    var t693t2 = function () {
+        return {
+            repalce: function () {
+                console.log('Ждите...');
+                var all = m80m_bus.bus_articlesAll(''); //массив имен-файлов всех статей
+                var article = "";
+                var doc, doc2, doc3, jq, con, hrf, hrf2, v1, ct = 0, abs = false, ret, txt, article2;
+                var domp = new DOMParser(); //парсер
+                var path = g54g.FI.fdPa_B();
+                console.log('all.length [' + all.length + ']');
+                for (var i = 0; i <  all.length; i++) { //100; i++) { //
+                    //console.log("--- --- ---");
+                    article = m80m_bus.bus_articleText('', all[i]);
+                    doc = domp.parseFromString(article, "text/html");
+                    jq = $('#x41z_blocks > a', doc); //все элементы "а" блока Intersections
+
+                    abs = false;
+                    jq.each(function () {
+
+                        hrf2 = hrf = $(this).attr('href');
+                        txt = hrf = $(this).text(); //текущий текст ссылки
+                        txt = txt.replace(/\n/g, '').replace(/\s+/g, ' ').replace(/^\s+/, '').replace(/\s+$/, '');
+
+                        /*
+                         var titleReal = g54g.FI.html_tgContent("", path + '\\' + hrf2, 'title');
+                         article2 = m80m_bus.bus_articleText('', hrf2);
+                         doc3 = domp.parseFromString(article2, "text/html");
+                         titleReal = $('title', doc3).text();
+                         */
+                        var titleReal;
+                        titleReal = g54g.FI.html_tgContent_B(hrf2, 'title', 1);
+                        titleReal = titleReal.replace(/\n/g, '').replace(/\s+/g, ' ').replace(/^\s+/, '').replace(/\s+$/, '');
+
+
+                        if (titleReal !== txt) {
+                            console.log("---");
+                            console.log("all[i]=" + all[i]);
+                            console.log("hrf2 = " + hrf2);
+                            console.log("txt = " + txt);
+                            console.log("titleReal = " + titleReal);
+                            /*
+                             */
+
+                            $(this).text(titleReal);
+                            abs = true;
+                        }
+                    });
+                    if (abs) {
+                        console.log("Замена файла : " + all[i]);
+
+                        /*
+                         //раскомментировать если реально нужно заменить файлы
+                         doc2 = doc.documentElement.outerHTML;
+                         ret = g54g.FI.fiRp_B(all[i], doc2, 'p_relative', 'p_unicode', 'p_force');
+                         if(!ret) console.log("!!! замена не выполнена");
+                         */
+
+                        ct++;
+                    }
+                }
+                console.log("Всего выполнено замен : " + ct);
+            }
+        }
+    }();
+</script>
+
+<br/>
+<input onclick="t693t2.repalce()" type="button" value="Старт">
+
+<div id="podval"></div>
+
+</body>
+</html>

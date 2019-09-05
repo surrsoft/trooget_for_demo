@@ -1,0 +1,42 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Тестовая страница технологии w307w</title>
+    <script language="JavaScript" type="text/javascript" src="_js/jquery-1.11.0.js"></script>
+    <script language="JavaScript" type="text/javascript" src="_js/main.js"></script>
+    <script language="JavaScript" type="text/javascript" src="_js/w307w/w307w.js"></script>
+    <link rel="stylesheet" href="_styles/main.css" type="text/css">
+</head>
+<body>
+<div id="shapka"></div>
+<div id="x44z_comm">[[w307w]] - использование тегов, [тег], [tag]</div>
+
+<li id="nnn"> это технология использования тегов</li>
+<li> принцип работы </li>
+<ul>
+    <li> подключить скрипт "_js/w307w/w307w.js" </li>
+    <li> в "блоки" которые нужно пометить тегами нужно поместить конструкцию "div class=w307w_tags". Внутри этой конструкции прописать теги в виде обычных span </li>
+    <li> остальное будет сделано автоматически - на базе имеющихся тегов будет добавлено "облако тегов" вверх страницы </li>
+    <li> при последовательном выборе тегов будут скрываться те "блоки" которые не содержат ВСЕХ выделенных тегов </li>
+    <li> по умолчанию "облако тегов" добавляется вверху страницы. Для размещения в любом месте страницы необходимо создать элемент "div id=w307w_tagSets" </li>
+</ul>
+
+<h2>Далее</h2>
+<div>
+    <div class="w307w_tags"><span>тег1</span> <span>тег2</span></div>
+    <li> тест 1</li>
+</div>
+<div>
+    <div class="w307w_tags"><span>тег3</span> <span>тег1</span></div>
+    <li> тест 2</li>
+</div>
+<div>
+    <div class="w307w_tags"><span>тег3</span> <span>тег4</span></div>
+    <li> тест 3</li>
+</div>
+
+
+<div id="podval"></div>
+
+</body>
+</html>

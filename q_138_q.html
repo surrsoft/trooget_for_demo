@@ -1,0 +1,495 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>[vamu]</title>
+    <script language="JavaScript" type="text/javascript" src="_js/jquery-1.11.0.js"></script>
+    <script language="JavaScript" type="text/javascript" src="_js/main.js"></script>
+    <link rel="stylesheet" href="_styles/main.css" type="text/css">
+    <style>
+        .multiselect {
+            width: 200px;
+        }
+
+        .selectBox {
+            position: relative;
+        }
+
+        .selectBox select {
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .overSelect {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+
+        #checkboxes {
+            display: none;
+            border: 1px #dadada solid;
+        }
+
+        #checkboxes label {
+            display: block;
+        }
+
+        #checkboxes label:hover {
+            background-color: #1e90ff;
+        }
+
+        #checkboxes_bals {
+            display: none;
+            border: 1px #dadada solid;
+        }
+
+        #checkboxes_bals label {
+            display: block;
+        }
+
+        #checkboxes_bals label:hover {
+            background-color: #1e90ff;
+        }
+    </style>
+    <script>
+
+        $(document).ready(function () {
+            fnStart();
+        });
+
+        //список отмеченных пользователем тегов
+        var g_arrStTagsSelected = [];
+        //список отмеченных пользователем баллов
+        var g_arrStBalsSelected = [];
+        //
+        var g_ojCardCurrent = {};
+        //state
+        var g_states = {
+            /**
+             * TRUE здесь означает что сейчас режим создания карточки
+             */
+            createCard: false
+        };
+
+        //---
+
+        function fnStart() {
+            //--- сбрасываем список тегов
+            g_arrStTagsSelected = [];
+
+            //---
+            var req = {
+                action: 'tagsGet'
+            };
+            //---
+            fnAjaxRequestPost('//190904-173700', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                console.log('vemu resp [' + stResponse + ']');
+                var arrStTags = JSON.parse(stResponse);
+                fnLabelsTagSet(arrStTags);
+                //---
+                fnLabelsBalSet();
+                //---
+                fnUpdateCountTable();
+            });
+        }
+
+        function fnCountBySelect(cb) {
+            //---
+            var req = {
+                action: 'countBySelect',
+                tags: g_arrStTagsSelected,
+                bals: g_arrStBalsSelected
+            };
+            //---
+            fnAjaxRequestPost('//190904-173700', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                console.log('vemu resp [' + stResponse + ']');
+                cb(stResponse);
+            });
+        }
+
+        function fnUpdateCountTable() {
+            fnCountBySelect(function (stCount) {
+                $('#idCountTable').html(stCount);
+            });
+        }
+
+
+        var expanded = false;
+        var expanded_bals = false;
+
+        function showCheckboxes() {
+            var checkboxes = document.getElementById("checkboxes");
+            if (!expanded) {
+                checkboxes.style.display = "block";
+                expanded = true;
+            } else {
+                checkboxes.style.display = "none";
+                expanded = false;
+            }
+        }
+
+        function showBals() {
+            var checkboxes = document.getElementById("checkboxes_bals");
+            if (!expanded_bals) {
+                checkboxes.style.display = "block";
+                expanded_bals = true;
+            } else {
+                checkboxes.style.display = "none";
+                expanded_bals = false;
+            }
+        }
+
+        /**
+         * Удаляет из массива (1) элемент со значением (2)
+         */
+        function fnArrRemoveElemByValue(_arr, _value) {
+            var ix = _arr.indexOf(_value);
+            if (ix !== -1) {
+                _arr.splice(ix, 1);
+            }
+        }
+
+        /**
+         * Вызывается при нажатии на чекбокс тегов
+         *
+         * @param ch -- ссылка на нажатый чекбокс
+         */
+        function fnChTagClick(ch) {
+            console.log('--> fnChTagClick(); id [' + ch.id + ']; checked [' + ch.checked + ']');
+            if (ch.checked) {
+                g_arrStTagsSelected.push(ch.id);
+            } else {
+                fnArrRemoveElemByValue(g_arrStTagsSelected, ch.id);
+            }
+            //---
+            fnUpdateCountTable();
+            //---
+            console.log(g_arrStTagsSelected);
+        }
+
+        /**
+         * Вызывается при нажатии на чекбокс баллов
+         *
+         * @param ch -- ссылка на нажатый чекбокс
+         */
+        function fnChBalClick(ch) {
+            console.log('--> fnChBalClick(); id [' + ch.id + ']; checked [' + ch.checked + ']');
+            if (ch.checked) {
+                g_arrStBalsSelected.push(ch.id);
+            } else {
+                fnArrRemoveElemByValue(g_arrStBalsSelected, ch.id);
+            }
+            //---
+            fnUpdateCountTable();
+            //---
+            console.log(g_arrStBalsSelected);
+        }
+
+        /**
+         * Запрос и показ следующей карточки
+         */
+        function fnNext() {
+            g_states.createCard = false;
+            //---
+            var req = {
+                action: 'cardRandomGet',
+                tags: g_arrStTagsSelected,
+                bals: g_arrStBalsSelected
+            };
+            //---
+            fnAjaxRequestPost('//190904-173700', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                console.log('vemu resp [' + stResponse + ']');
+                var card = JSON.parse(stResponse);
+                //---
+                if (card === null) {
+                    alert('Карточек не найдено');
+                } else {
+                    fnCardHandle(card);
+                }
+            });
+        }
+
+        function fnCreate() {
+            g_states.createCard = true;
+            //---
+            var card = {
+                tag: '',
+                front: '',
+                back: '',
+                bal: '0'
+            };
+            //--- подставляем тег если среди тегов выбран только один тег
+            if (g_arrStTagsSelected.length === 1) {
+                card.tag = g_arrStTagsSelected[0];
+            }
+            //---
+            fnCardHandle(card, true);
+        }
+
+
+        function fnLabelTagCreate(_stTag) {
+            return '<label for="' + _stTag + '"><input type="checkbox" id="' + _stTag + '" onclick="fnChTagClick(this);" />' + _stTag + '</label>';
+        }
+
+        function fnLabelBalCreate(_stTag) {
+            return '<label for="' + _stTag + '"><input type="checkbox" id="' + _stTag + '" onclick="fnChBalClick(this);" />' + _stTag + '</label>';
+        }
+
+        function fnLabelsTagSet(_arrStTags) {
+            var ch = $('#checkboxes');
+            //--- очищаем содержимое
+            ch.html('');
+            //---
+            for (var i = 0; i < _arrStTags.length; i++) {
+                var stTag = _arrStTags[i];
+                var stLabel = fnLabelTagCreate(stTag);
+                ch.append(stLabel);
+            }
+        }
+
+        function fnLabelsBalSet() {
+            var ch = $('#checkboxes_bals');
+            //--- очищаем содержимое
+            ch.html('');
+            //---
+            ch.append(fnLabelBalCreate('0'));
+            ch.append(fnLabelBalCreate('1'));
+            ch.append(fnLabelBalCreate('2'));
+            ch.append(fnLabelBalCreate('3'));
+            ch.append(fnLabelBalCreate('4'));
+        }
+
+        function fnAnswer() {
+            $('#idAnswer').show();
+        }
+
+        /**
+         * @param _bNext -- если TRUE то значит после сохранения нужно вызвать функцию показа следующей карточки
+         */
+        function fnSave(_bNext) {
+            console.log('--> fnSave()');
+            g_ojCardCurrent['front'] = $('#idQuestion').val();
+            g_ojCardCurrent['back'] = $('#idAnswer').val();
+            g_ojCardCurrent['tag'] = $('#idNewTag').val();
+            if (!g_ojCardCurrent['tag']) {
+                alert('Тег не может быть пустым');
+                return;
+            }
+            console.log(g_ojCardCurrent);
+            var b = true;
+            if (g_states.createCard) {
+                fnCardExists(function (bExists) {
+                    if (bExists) {
+                        alert('Такая карточка уже существует (с таким же тегом и вопросом)');
+                        b = false;
+                    }
+                });
+            }
+            //---
+            if (b) {
+                var req = {
+                    action: 'createOrUpdate',
+                    cardOj: g_ojCardCurrent
+                };
+                fnAjaxRequestPost('//190905-144900', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                    console.log('vemu resp [' + stResponse + ']');
+                    if (_bNext) {
+                        fnNext();
+                    }
+                    //---
+                    fnUpdateCountTable();
+                });
+            }
+        }
+
+        /**
+         * Вовзращает TRUE если карточка с таким вопросом (1) уже есть в базе
+         */
+        function fnCardExists(cb) {
+            g_ojCardCurrent['front'] = $('#idQuestion').val();
+            //---
+            var req = {
+                action: 'esistsFront',
+                cardOj: g_ojCardCurrent
+            };
+            fnAjaxRequestPost('//190905-144900', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                console.log('vemu resp [' + stResponse + ']');
+                cb(stResponse === 'true');
+            });
+        }
+
+        function fnDelete() {
+            console.log('--> fnDelete()');
+            if (confirm('Удаление. Вы уверены?')) {
+                //---
+                var req = {
+                    action: 'cardDelete',
+                    cardOj: g_ojCardCurrent
+                };
+                fnAjaxRequestPost('//190905-144901', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                    console.log('vemu resp [' + stResponse + ']');
+                    fnUpdateCountTable();
+                });
+            }
+        }
+
+        function fnBalSet(_iBal) {
+            g_ojCardCurrent['bal'] = _iBal + '';
+            $('#idBal').html(_iBal + '');
+            //---
+            fnSave(true);
+        }
+
+        /**
+         * Обработчик нажатия кнопки 'Count'
+         */
+        function fnCountBtn() {
+            var req = {
+                action: 'count'
+            };
+            fnAjaxRequestPost('//190905-144900', 'signal_vamu', JSON.stringify(req), function (stResponse) {
+                console.log('vemu resp [' + stResponse + ']');
+                alert(stResponse);
+            });
+        }
+
+        /**
+         *
+         * @param _ojCard
+         * @param _bCreateNew
+         */
+        function fnCardHandle(_ojCard, _bCreateNew) {
+            g_ojCardCurrent = _ojCard;
+            //---
+            var domCardPlace = $('#cardPlace');
+            domCardPlace.html('');
+            //---
+            var stHtmlTag = '<span>Тег: </span><input id="idNewTag" type="text" value="' + _ojCard['tag'] + '"> </br>';
+            //---
+            var stHtmlDisplayNone = 'style="display: none"';
+            if (_bCreateNew) {
+                stHtmlDisplayNone = '';
+            }
+            //---
+            var st =
+                '<span style="color: darkgrey">(_id: ' + _ojCard['_id'] + ')</span> </br> ' +
+                '<form>' +
+                stHtmlTag +
+                '<textarea id="idQuestion" cols="45" rows="5">' + _ojCard['front'] + '</textarea>' +
+                '</br> <input type="button" value="Показать ответ" onclick="fnAnswer();">' +
+                '</br> <textarea id="idAnswer" cols="45" rows="5" ' + stHtmlDisplayNone + '>' + _ojCard['back'] + '</textarea>' +
+                '</br> <span>Оценка: </span><span id="idBal">' + _ojCard['bal'] + '</span>' +
+                '</br> <input type="button" value="0" onclick="fnBalSet(0)">' +
+                '<input type="button" value="1" onclick="fnBalSet(1)">' +
+                '<input type="button" value="2" onclick="fnBalSet(2)">' +
+                '<input type="button" value="3" onclick="fnBalSet(3)">' +
+                '<input type="button" value="4" onclick="fnBalSet(4)">' +
+                '</br> <input type="button" value="Сохранить" onclick="fnSave(false);">' +
+                '</br>' +
+                '</br> <input type="button" value="Удалить" onclick="fnDelete();">' +
+                '</form>';
+            domCardPlace.append(st);
+        }
+    </script>
+
+</head>
+<body>
+<div id="shapka"></div>
+<div id="x44z_comm">[[vamu]], flashcards, карточки, мой проект</div>
+
+<li> информация:</li>
+<ul class="snippet-in">
+    <li> понятия</li>
+    <ul class="snippet-in">
+        <li> _тег, _tag - обозначает тематику _карточки</li>
+        <li> _карточка, _flashcard -</li>
+        <ul class="snippet-in">
+            <li> список _карточек хранится в vamu/flashcards.json</li>
+            <li> структура объекта</li>
+            <ul class="snippet-in">
+                <li> tag - имя тега</li>
+                <li> front - текст для лицевой части _карточки</li>
+                <li> back - текст для оборотной части _карточки</li>
+                <li> bal - {number 0...4} степень изученности _карточки</li>
+            </ul>
+        </ul>
+        <li> [[nmec]] - объект который отправляется серверу с целью выполнить то или иное действие</li>
+        <ul class="snippet-in">
+            <li> варианты</li>
+            <ul class="snippet-in">
+                <li> запросить все теги
+                    <pre class="snippet-in">
+    {
+        action: "tagsGet"
+    }
+                </pre>
+                </li>
+
+            </ul>
+        </ul>
+    </ul>
+    <li> ссылки</li>
+    <ul class="snippet-in">
+        <li><a href="https://stackoverflow.com/questions/17714705/how-to-use-checkbox-inside-select-option"
+               target="_blank">https://stackoverflow.com/questions/17714705/how-to-use-checkbox-inside-select-option</a>
+        </li>
+    </ul>
+</ul>
+
+<!--start button-->
+<!--<form>-->
+<!--    <input type="button" value="prob_tags" onclick="fnStart();">-->
+<!--</form>-->
+
+<table>
+    <caption>Count: <span id="idCountTable"></span></caption>
+    <tr>
+        <td valign="top">
+            <form>
+                <div class="multiselect">
+                    <div class="selectBox" onclick="showCheckboxes()">
+                        <select>
+                            <option>Теги</option>
+                        </select>
+                        <div class="overSelect"></div>
+                    </div>
+                    <div id="checkboxes">
+                    </div>
+                </div>
+            </form>
+        </td>
+        <td valign="top">
+            <form>
+                <div class="multiselect">
+                    <div class="selectBox" onclick="showBals();">
+                        <select>
+                            <option>Баллы</option>
+                        </select>
+                        <div class="overSelect"></div>
+                    </div>
+                    <div id="checkboxes_bals">
+                    </div>
+                </div>
+            </form>
+        </td>
+    </tr>
+</table>
+
+<!--button next-->
+<form>
+    <input type="button" value="Следующая случайная карточка" onclick="fnNext();">
+    <input type="button" value="Создать новую карточку" onclick="fnCreate();">
+</form>
+
+<div id="cardPlace"></div>
+
+<!--<form>-->
+<!--    <input type="button" value="count" onclick="fnCountBtn();">-->
+<!--    <input type="button" value="test" onclick="fnCountBySelect();">-->
+<!--</form>-->
+
+<div id="podval"></div>
+<div id="x41z_blocks"><a href="q_2_q.html">Мои проекты</a></div>
+</body>
